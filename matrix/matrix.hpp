@@ -54,7 +54,10 @@ namespace Linal
         //arithmetic operators
         Matrix& operator+= (const Matrix& rhs);
         Matrix& operator-= (const Matrix& rhs);
-        Matrix& operator*= (const T num);
+        Matrix& operator*= (const Matrix& rhs);
+        Matrix& operator*= (const T& num);
+
+        operator std::vector<T>();
 
         static T DeterminantNaive(const Matrix& matrix);
 
@@ -141,6 +144,7 @@ namespace Linal
     template <typename T>
     Matrix<T>::Matrix(Matrix&& rhs) noexcept
     {
+        std::cout << __PRETTY_FUNCTION__ << " was called" << std::endl;
         std::swap(m_cols, rhs.m_cols);
         std::swap(m_rows, rhs.m_rows);
         std::swap(m_data, rhs.m_data);
@@ -197,7 +201,7 @@ namespace Linal
         if(m_rows != rhs.m_rows || m_cols != rhs.m_cols)
             throw std::invalid_argument("Dimension of matrices in \"+=\" mismatch");
 
-        for(int i = 0; i < m_rows * m_cols; ++i)
+        for(size_t i = 0; i < m_rows * m_cols; ++i)
             m_data[i] += rhs.m_data[i];
 
         return *this;
@@ -217,10 +221,66 @@ namespace Linal
         if(m_rows != rhs.m_rows || m_cols != rhs.m_cols)
             throw std::invalid_argument("Dimension of matrices in \"-=\" mismatch");
 
-        for(int i = 0; i < m_rows * m_cols; ++i)
+        for(size_t i = 0; i < m_rows * m_cols; ++i)
             m_data[i] -= rhs.m_data[i];
 
         return *this;
+    }
+
+    template <typename T>
+    Matrix<T> operator-(const Matrix<T>& lhs, const Matrix<T>& rhs)
+    {
+        Matrix<T> temp {lhs};
+        temp -= rhs;
+        return temp;
+    }
+
+    template <typename T>
+    Matrix<T>& Matrix<T>::operator*=(const Matrix& rhs)
+    {
+        if(m_cols != rhs.m_rows)
+            throw std::invalid_argument("Dimension of matrices in \"*=\" mismatch");
+
+        Matrix<T> res {m_rows, rhs.m_cols};
+
+        for(size_t i = 0; i < m_rows; ++i)
+            for(size_t j = 0; j < rhs.m_cols; ++j)
+                for(size_t k = 0; k < m_cols; ++k)
+                    res[i][j] += (*this)[i][k] * rhs[k][j];
+
+        *this = std::move(res);
+        return *this;
+    }
+
+    template <typename T>
+    Matrix<T> operator*(const Matrix<T>& lhs, const Matrix<T>& rhs)
+    {
+        Matrix<T> temp {lhs};
+        temp *= rhs;
+        return temp;
+    }
+
+    template <typename T>
+    Matrix<T>& Matrix<T>::operator*=(const T& num)
+    {
+        for(size_t i = 0; i < m_rows * m_cols; ++i)
+            m_data[i] *= num;
+
+        return *this;
+    }
+
+    template <typename T>
+    Linal::Matrix<T>::operator std::vector<T>()
+    {
+        std::vector<T> res = {};
+        res.reserve(m_rows*m_cols);
+
+        for(size_t i = 0; i < m_rows; ++i)
+            for(size_t j = 0; j < m_cols; ++j)
+                //res.push_back((*this)[i][j]);
+                res.push_back(*(m_data + i * m_cols + j));
+
+        return res;
     }
 
     template <typename T>
@@ -270,7 +330,8 @@ namespace Linal
 
         for(size_t i = 0; i < m_rows; ++i)
             for(size_t j = 0; j < m_cols; ++j)
-                temp[j][i] = (*this)[i][j];
+                //temp[j][i] = (*this)[i][j];
+                temp[j][i] = *(m_data + i * m_cols + j);
 
         *this = std::move(temp);
 
